@@ -1,0 +1,120 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id(map: "pk_users_id") @default(uuid()) @db.Uuid
+  name          String    @map("vc_name") @db.VarChar
+  lastName      String    @map("vc_last_name") @db.VarChar
+  password      String    @map("vc_password") @db.VarChar
+  avatar        String?    @map("vc_avatar") @db.VarChar
+  phone         String?   @map("vc_phone") @db.VarChar
+  email         String    @map("vc_email") @db.VarChar
+  createdAt     DateTime  @default(now()) @map("dt_create") @db.Timestamp(6)
+  creationUser  String?    @map("create_user_id") @db.Uuid
+  updatedAt     DateTime  @updatedAt @map("dt_update") @db.Timestamp(6)
+  updateUser    String?   @map("update_user_id") @db.Uuid
+  inactivatedAt DateTime? @map("dt_inactivated") @db.Timestamp(6)
+
+  accounts Account[] @relation("accountsToUsers_userId")
+
+  usersToCreateUserId      User?   @relation("usersToCreateUserId", fields: [creationUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_users_create_user")
+  usersToUpdateUserId      User?  @relation("usersToUpdateUserId", fields: [updateUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_users_update_user")
+  otherUsersToCreateUserId User[] @relation("usersToCreateUserId")
+  otherUsersToUpdateUserId User[] @relation("usersToUpdateUserId")
+
+  categoriesUpdateUserIdToUsers      Category[]      @relation("categoriesUpdateUserIdToUsers")
+  categoriesCreateUserIdToUsers      Category[]      @relation("categoriesCreateUserIdToUsers")
+  categoriesItemsUpdateUserIdToUsers CategoryItems[] @relation("categoryItemsUpdateUserIdToUsers")
+  categoriesItemsCreateUserIdToUsers CategoryItems[] @relation("categoryItemsCreateUserIdToUsers")
+
+  createUserIdToAccount Account[] @relation("accountsToCreateUserId")
+  updateUserIdToAccount Account[] @relation("accountsToUpdateUserId")
+
+  @@map("users")
+}
+
+model Account {
+  id      String @id(map: "pk_accounts_id") @default(uuid()) @db.Uuid
+  balance String @map("vc_balance") @db.VarChar
+
+  createdAt    DateTime @default(now()) @map("dt_create") @db.Timestamp(6)
+  creationUser String   @map("create_user_id") @db.Uuid
+  updatedAt    DateTime @updatedAt @map("dt_update") @db.Timestamp(6)
+  updateUser   String?  @map("update_user_id") @db.Uuid
+
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation("accountsToUsers_userId", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_accounts_user_id")
+
+  accountsToCreateUserId User  @relation("accountsToCreateUserId", fields: [creationUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_accounts_create_user")
+  accountsToUpdateUserId User? @relation("accountsToUpdateUserId", fields: [updateUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_accounts_update_user")
+
+  transactions Transaction[] @relation("transactionsToAccounts_accountId")
+
+  @@map("accounts")
+}
+
+model Transaction {
+  id          String @id(map: "pk_transactions_id") @default(uuid()) @db.Uuid
+  description String @map("vc_description") @db.VarChar
+  value       String @map("vc_value") @db.VarChar
+
+  typeId String?        @map("vc_type") @db.Uuid
+  type   CategoryItems? @relation("transactionsToCategoryItems_typeId", fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_transactions_type_id")
+
+  createdAt    DateTime @default(now()) @map("dt_create") @db.Timestamp(6)
+  creationUser String?  @map("create_user_id") @db.Uuid
+
+  accountId String  @map("account_id") @db.Uuid
+  account   Account @relation("transactionsToAccounts_accountId", fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_transactions_account_id")
+
+  @@map("transactions")
+}
+
+model Category {
+  id            String    @id(map: "pk_categories") @default(uuid()) @db.Uuid
+  name          String    @map("vc_name") @db.VarChar
+  type          String    @unique @map("vc_type") @db.VarChar
+  value         String?   @map("vc_value") @db.VarChar
+  createdAt     DateTime  @default(now()) @map("dt_create") @db.Timestamp(6)
+  creationUser  String    @map("create_user_id") @db.Uuid
+  updatedAt     DateTime  @updatedAt @map("dt_update") @db.Timestamp(6)
+  updateUser    String?   @map("update_user_id") @db.Uuid
+  inactivatedAt DateTime? @map("dt_inactivated") @db.Timestamp(6)
+
+  usersCategoriesUpdateUserIdToUsers User? @relation("categoriesUpdateUserIdToUsers", fields: [updateUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_categories_update_user")
+  usersCategoriesCreateUserIdToUsers User  @relation("categoriesCreateUserIdToUsers", fields: [creationUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_categories_create_user")
+
+  categoryItems CategoryItems[]
+
+  @@map("categories")
+}
+
+model CategoryItems {
+  id            String    @id(map: "pk_category_items") @default(uuid()) @db.Uuid
+  name          String    @map("vc_name") @db.VarChar
+  type          String    @unique @map("vc_type") @db.VarChar
+  value         String?   @map("vc_value") @db.VarChar
+  createdAt     DateTime  @default(now()) @map("dt_create") @db.Timestamp(6)
+  creationUser  String    @map("create_user_id") @db.Uuid
+  updatedAt     DateTime  @updatedAt @map("dt_update") @db.Timestamp(6)
+  updateUser    String    @map("update_user_id") @db.Uuid
+  inactivatedAt DateTime? @map("dt_inactivated") @db.Timestamp(6)
+
+  categoryItemsCreateUserIdToUsers User          @relation("categoryItemsCreateUserIdToUsers", fields: [creationUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_category_items_create_user")
+  categoryItemsUpdateUserIdToUsers User          @relation("categoryItemsUpdateUserIdToUsers", fields: [updateUser], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_category_items_update_user")
+  transactions                     Transaction[] @relation("transactionsToCategoryItems_typeId")
+
+  categoryId String   @map("category_id") @db.Uuid
+  categories Category @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_category_items_category")
+
+  @@map("category_items")
+}
